@@ -1,0 +1,109 @@
+# оригинал взят https://github.com/kayvansol/Cassandra
+networks:
+  cassandra-net:
+    driver: ipvlan
+    driver_opts:
+      parent: enp0s3
+      ipvlan_mode: l2
+    ipam:
+      config:
+        - subnet: 192.168.1.0/24
+          gateway: 192.168.1.1
+          ip_range: 192.168.1.200/29 # резервируем адреса 200–207 для контейнеров
+
+services:
+
+  cassandra-1:
+    build: .
+    container_name: "cassandra-1"
+    networks:
+      cassandra-net:
+        ipv4_address: 192.168.1.200
+    environment:
+      - CASSANDRA_START_RPC=true
+      - CASSANDRA_RPC_ADDRESS=0.0.0.0
+      - CASSANDRA_LISTEN_ADDRESS=auto
+      - CASSANDRA_BROADCAST_ADDRESS=192.168.1.200 # чтобы отдавала этот адрес клиентам cqlsh и другим нодам
+      - CASSANDRA_CLUSTER_NAME=my-cluster
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - CASSANDRA_DC=my-datacenter-1
+      - MAX_HEAP_SIZE=1024M # ограничиваем кучу в памяти. каждый JVM захочет себе 50%  от доступного на ВМ. И кто-то будет убит. Проверить потребление docker stats
+      - HEAP_NEWSIZE=256M # определяет размер Young Generation внутри Heap. https://habr.com/ru/articles/927132/
+    volumes:
+      - cassandra-node-1:/var/lib/cassandra:rw
+      # - ./.ssh/authorized_keys:/home/admin/.ssh/authorized_keys:ro  # или так монтируем ключ только для чтения
+    restart:
+      unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status"]
+      interval: 2m
+      start_period: 2m
+      timeout: 10s
+      retries: 3
+
+  cassandra-2:
+    image: "cassandra:latest"
+    container_name: "cassandra-2"
+    networks:
+      cassandra-net:
+        ipv4_address: 192.168.1.201
+    environment:
+      - CASSANDRA_START_RPC=true
+      - CASSANDRA_RPC_ADDRESS=0.0.0.0
+      - CASSANDRA_LISTEN_ADDRESS=auto
+      - CASSANDRA_BROADCAST_ADDRESS=192.168.1.201
+      - CASSANDRA_CLUSTER_NAME=my-cluster
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - CASSANDRA_DC=my-datacenter-1
+      - CASSANDRA_SEEDS=cassandra-1
+      - MAX_HEAP_SIZE=1024M
+      - HEAP_NEWSIZE=256M
+    depends_on:
+      cassandra-1:
+        condition: service_healthy
+    volumes:
+      - cassandra-node-2:/var/lib/cassandra:rw
+    restart:
+      unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status"]
+      interval: 2m
+      start_period: 2m
+      timeout: 10s
+      retries: 3
+
+  cassandra-3:
+    image: "cassandra:latest"
+    container_name: "cassandra-3"
+    networks:
+      cassandra-net:
+        ipv4_address: 192.168.1.202
+    environment:
+      - CASSANDRA_START_RPC=true
+      - CASSANDRA_RPC_ADDRESS=0.0.0.0
+      - CASSANDRA_LISTEN_ADDRESS=auto
+      - CASSANDRA_BROADCAST_ADDRESS=192.168.1.202
+      - CASSANDRA_CLUSTER_NAME=my-cluster
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - CASSANDRA_DC=my-datacenter-1
+      - CASSANDRA_SEEDS=cassandra-1
+      - MAX_HEAP_SIZE=1024M
+      - HEAP_NEWSIZE=256M
+    depends_on:
+      cassandra-2:
+        condition: service_healthy
+    volumes:
+      - cassandra-node-3:/var/lib/cassandra:rw
+    restart:
+      unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status"]
+      interval: 2m
+      start_period: 2m
+      timeout: 10s
+      retries: 3
+
+volumes:
+  cassandra-node-1:
+  cassandra-node-2:
+  cassandra-node-3:
