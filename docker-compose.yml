@@ -31,7 +31,7 @@ services:
       - HEAP_NEWSIZE=256M # определяет размер Young Generation внутри Heap. https://habr.com/ru/articles/927132/
     volumes:
       - cassandra-node-1:/var/lib/cassandra:rw
-      # - ./.ssh/authorized_keys:/home/admin/.ssh/authorized_keys:ro  # или так монтируем ключ только для чтения
+      # - ./authorized_keys:/home/admin/.ssh/authorized_keys:ro  # или так монтируем ключ только для чтения
     restart:
       unless-stopped
     healthcheck:
