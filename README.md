@@ -137,7 +137,7 @@
    ssh admin@192.168.1.200
    ```
 
-
+![image-20260309223011268](/home/experimenter/.config/Typora/typora-user-images/image-20260309223011268.png)
 
 ## Настраиваем машину Б с cqlsh.
 
@@ -164,7 +164,7 @@
 
 
 
-
+![image-20260309222931695](/home/experimenter/.config/Typora/typora-user-images/image-20260309222931695.png)
 
 #### Дополнительный инструменты для настройки и отладки.
 
